@@ -79,7 +79,7 @@ function analyzeRows_(onlyMissing) {
       `결과 열: ${columnToLetter_(outputStartColumn)}~${columnToLetter_(outputStartColumn + outputWidth - 1)}`,
       `대상: ${CONFIG.FIRST_DATA_ROW}~${CONFIG.FIRST_DATA_ROW + rowCount - 1}행${onlyMissing ? ' 중 빈 결과만' : ''}`,
       '',
-      '진행할까?'
+      '진행할까요?'
     ].join('\n'),
     ui.ButtonSet.YES_NO
   );
