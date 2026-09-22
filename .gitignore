@@ -1,0 +1,9 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS / build artifacts
+.DS_Store
+node_modules/
+*.zip

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>서울 지하철 사고위험 분석</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 20px;color:#17202a;background:#f7f8fa}h1{margin-bottom:8px}.muted{color:#667085}.card{background:white;border:1px solid #e4e7ec;border-radius:14px;padding:20px;margin:18px 0;box-shadow:0 2px 8px #1018280a}label{display:block;font-weight:700;margin:12px 0 6px}input,select,button{font:inherit;padding:10px;border:1px solid #cfd4dc;border-radius:8px}input,select{width:100%;box-sizing:border-box}button{background:#155eef;color:#fff;border:0;font-weight:700;cursor:pointer;margin-top:16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.route{font-size:13px;min-height:68px}.result{white-space:pre-wrap;background:#101828;color:#e6edf3;padding:16px;border-radius:10px;overflow:auto}strong{color:#155eef}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>서울 지하철 사고위험 분석</h1>
+  <p class="muted">2021-01-02~2025-06-20 사고 2,404건을 이용한 Jev Noul/Score 테스트</p>
+  <div class="card">
+    <div class="grid">
+      <div><label for="origin">출발역</label><select id="origin"></select></div>
+      <div><label for="destination">도착역</label><select id="destination"></select></div>
+      <div><label for="time">이동 시간</label><input id="time" type="time" value="08:30" /></div>
+    </div>
+    <label for="route">경유역 목록(선택)</label>
+    <input id="route" class="route" placeholder="예: 시청역, 종로3가(1)역, 동대문역사문화공원(4)역" />
+    <p class="muted">노선 데이터가 아직 없으므로, 경유역을 입력하면 해당 역들을 함께 분석함. 비워두면 출발역과 도착역만 분석함.</p>
+    <button id="run">사고위험 분석</button>
+  </div>
+  <div class="card"><h2>결과</h2><div id="result" class="result">아직 분석하지 않았음.</div></div>
+  <script>
+    const $ = id => document.getElementById(id);
+    const state = { stations: [] };
+    function fill(select) { select.innerHTML = state.stations.map(s => `<option>${s}</option>`).join(''); }
+    fetch('/api/meta').then(r=>r.json()).then(m=>{state.stations=m.stations;fill($('origin'));fill($('destination'));});
+    $('run').onclick = async () => {
+      $('result').textContent = '분석 중...';
+      const route = $('route').value.split(',').map(s=>s.trim()).filter(Boolean);
+      const payload = { origin:$('origin').value, destination:$('destination').value, time:$('time').value, routeStations:route };
+      const r = await fetch('/api/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      const d = await r.json();
+      if(d.error){$('result').textContent=d.error;return;}
+      const a=d.jev?.result?.answers;
+      $('result').textContent = JSON.stringify({
+        Jev_사고위험_Noul: a?.incident_risk?.noul ?? 'API 키 미설정',
+        Jev_영향도_Score: a?.severity?.score ?? 'API 키 미설정',
+        Jev_영향도_확률: a?.severity?.probabilities ?? null,
+        역사적_경로사고건수: d.stats.routeIncidentCount,
+        선택시간대_사고건수: d.stats.timeMatchedIncidentCount,
+        역별_분석: d.stats.byStation,
+        사고유형별: d.stats.byType
+      }, null, 2);
+    };
+  </script>
+</body>
+</html>
